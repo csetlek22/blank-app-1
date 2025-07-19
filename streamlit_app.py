@@ -176,7 +176,13 @@ if st.button("✅ Save My Gift Preferences"):
         client_gs = gspread.authorize(creds)
 
         # Open or create your sheet
-        sheet = client_gs.open("Gift Preferences").sheet1  # Make sure this sheet exists
+
+        try:
+            sheet = client_gs.open("Gift Preferences").sheet1
+        except gspread.SpreadsheetNotFound:
+            spreadsheet = client_gs.create("Gift Preferences")
+            spreadsheet.share('your-service-account@...', perm_type='user', role='writer')
+            sheet = spreadsheet.sheet1
 
         # Append the data
         sheet.append_row([

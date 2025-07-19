@@ -2,7 +2,6 @@ import streamlit as st
 from datetime import datetime
 import json
 from groq import Groq
-import os
 
 # --- CONFIGURATION ---
 

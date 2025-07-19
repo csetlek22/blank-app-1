@@ -9,11 +9,7 @@ MODEL_NAME = "llama3-70b-8192"
 
 # --- INIT GROQ CLIENT ---
 # Fallback for local dev if secrets is missing
-if "GROQ_API_KEY" in st.secrets:
-    api_key = st.secrets["GROQ_API_KEY"]
-else:
-    with open("apikey.txt") as f:
-        api_key = f.read().strip()
+api_key = st.secrets["GROQ_API_KEY"]
 
 client = Groq(api_key=api_key)
 

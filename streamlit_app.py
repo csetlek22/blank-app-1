@@ -170,27 +170,8 @@ if st.button("✅ Save My Gift Preferences"):
             "liked_gifts": st.session_state.liked_gifts
         }
 
-
-        # Connect to Google Sheets
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["gspread"], scope)
-        client_gs = gspread.authorize(creds)
-
-        # Open or create your sheet
-        sheet = client_gs.open("Gift Preferences").sheet1  # Make sure this sheet exists
-
-        # Append the data
-        sheet.append_row([
-            datetime.now().isoformat(),
-            email,
-            recipient,
-            ", ".join(personality),
-            ", ".join(interests),
-            ", ".join(occasion),
-            budget,
-            story,
-            ", ".join(st.session_state.liked_gifts)
-        ])
+        with open("user_choices.json", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
 
         st.success("Your answers and favorite gifts were saved successfully!")
         st.session_state.liked_gifts = []

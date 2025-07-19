@@ -5,6 +5,11 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # --- CONFIGURATION ---
+import json
+
+with open("credentials.json") as f:
+    info = json.load(f)
+    print("Service account email:", info['client_email'])
 
 MODEL_NAME = "llama3-70b-8192"
 

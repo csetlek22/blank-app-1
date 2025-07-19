@@ -9,7 +9,7 @@ MODEL_NAME = "llama3-70b-8192"
 
 # --- INIT GROQ CLIENT ---
 # Fallback for local dev if secrets is missing
-api_key = st.secrets["GROQ_API_KEY"]
+api_key = st.secrets["API_KEY"]
 
 client = Groq(api_key=api_key)
 

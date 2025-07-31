@@ -16,36 +16,38 @@ LANG_OPTIONS = {"English": "en", "Türkçe": "tr"}
 lang = st.selectbox("Language / Dil", list(LANG_OPTIONS.keys()), index=0)
 L = LANG_OPTIONS[lang]
 
-# Localization dictionaries
+# Localization dictionaries (extend as needed)
 TEXT = {
     "title": {"en": "🎁 Gift Recommendation Engine", "tr": "🎁 Hediye Öneri Motoru"},
-    "subtitle": {"en": "Answer a few fun questions and get personalized gift ideas!", "tr": "Birkaç eğlenceli soruyu cevaplayın ve kişiselleştirilmiş hediye fikirleri alın!"},
+    "subtitle": {"en": "Answer a few fun questions and get personalized gift ideas!",
+                 "tr": "Birkaç eğlenceli soruyu cevaplayın ve kişiselleştirilmiş hediye fikirleri alın!"},
     "email": {"en": "Your Email", "tr": "E-posta Adresiniz"},
     "recipient": {"en": "Gift is for", "tr": "Hediye kime"},
-    "personality_prompt": {"en": "What personality traits describe this person?", "tr": "Bu kişiyi hangi kişilik özellikleri tanımlar?"},
-    "interests_prompt": {"en": "What are this person’s interests?", "tr": "Bu kişinin ilgi alanları nelerdir?"},
+    "personality_prompt": {"en": "What personality traits describe this person?",
+                           "tr": "Bu kişiyi hangi kişilik özellikleri tanımlar?"},
+    "interests_prompt": {"en": "What are this person’s interests?",
+                         "tr": "Bu kişinin ilgi alanları nelerdir?"},
     "occasion_prompt": {"en": "Occasion(s)", "tr": "Fırsat(lar)"},
     "custom_occasion": {"en": "Other occasion (optional)", "tr": "Diğer etkinlik (opsiyonel)"},
     "budget": {"en": "Budget (€)", "tr": "Bütçe (€)"},
-    "story": {"en": "Tell us a short story about them (optional but recommended)", "tr": "Hakkında kısa bir hikaye anlatın (isteğe bağlı ama önerilir)"},
+    "story": {"en": "Tell us a short story about them (optional but recommended)",
+              "tr": "Hakkında kısa bir hikaye anlatın (isteğe bağlı ama önerilir)"},
     "submit": {"en": "🎯 Get Gift Suggestions", "tr": "🎯 Hediye Önerisi Al"},
     "suggested": {"en": "🎁 Suggested Gifts", "tr": "🎁 Önerilen Hediyeler"},
-    "translate_button": {"en": "Translate to Turkish", "tr": "Türkçeye Çevir"},
     "select_liked": {"en": "👍 Select the gifts you like:", "tr": "👍 Beğendiğiniz hediyeleri seçin:"},
     "final_step": {"en": "📩 Final Step", "tr": "📩 Son Adım"},
     "save_button": {"en": "✅ Save My Gift Preferences", "tr": "✅ Hediye Tercihlerimi Kaydet"},
-    "fill_required": {"en": "Please fill in your email and recipient's name.", "tr": "Lütfen e-posta ve hediye alıcısının adını girin."},
-    "select_at_least": {"en": "Please select at least one gift from the list.", "tr": "Lütfen listeden en az bir hediye seçin."},
-    "saved_success": {"en": "Your answers and favorite gifts were saved successfully!", "tr": "Cevaplarınız ve favori hediyeleriniz başarıyla kaydedildi!"},
+    "fill_required": {"en": "Please fill in your email and recipient's name.",
+                      "tr": "Lütfen e-posta ve hediye alıcısının adını girin."},
+    "select_at_least": {"en": "Please select at least one gift from the list.",
+                        "tr": "Lütfen listeden en az bir hediye seçin."},
+    "saved_success": {"en": "Your answers and favorite gifts were saved successfully!",
+                      "tr": "Cevaplarınız ve favori hediyeleriniz başarıyla kaydedildi!"},
 }
 
 # --- INIT SESSION STATE ---
 if "liked_gifts" not in st.session_state:
     st.session_state.liked_gifts = []
-if "original_suggestion" not in st.session_state:
-    st.session_state.original_suggestion = ""
-if "translated_suggestion" not in st.session_state:
-    st.session_state.translated_suggestion = ""
 
 # --- UI ---
 st.title(TEXT["title"][L])
@@ -121,20 +123,6 @@ with st.form("gift_form"):
 
 gift_choices = []
 
-# --- TRANSLATION HELPER ---
-def translate_to_turkish(text: str) -> str:
-    # Use the same model to translate while preserving numbering and format
-    translation_prompt = f"""
-Translate the following gift suggestion list into Turkish. Preserve numbering, formatting, and keep each item concise:
-{text}
-"""
-    resp = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[{"role": "user", "content": translation_prompt}],
-        temperature=0.3,
-    )
-    return resp.choices[0].message.content.strip()
-
 # --- HANDLE AI SUGGESTIONS ---
 if submitted:
     st.subheader(TEXT["suggested"][L])
@@ -148,7 +136,7 @@ Aşağıdaki kişi için 15 adet özgün ve düşünülmüş hediye önerisi yap
 Alıcı: {recipient}
 Kişilik: {', '.join(personality)}
 İlgi Alanları: {', '.join(interests)}
-Etkinlik: {', '.join(occasion)}
+Etkinlik: {occasion}
 Bütçe: {budget} Euro
 Hikaye: {story if story else "Yok"}
 
@@ -182,27 +170,13 @@ Only return the list.
         temperature=0.7,
     )
 
-    suggestion = response.choices[0].message.content.strip()
-    st.session_state.original_suggestion = suggestion
-
-    # If user is Turkish but model output might be English, allow explicit translation
-    if L == "tr":
-        # If suggestion appears to be in English, offer translate button
-        if st.button(TEXT["translate_button"][L]):
-            translated = translate_to_turkish(suggestion)
-            st.session_state.translated_suggestion = translated
-            st.text_area("💡 AI Suggestions (Türkçe)", translated, height=250)
-        else:
-            st.text_area("💡 AI Suggestions", suggestion, height=250)
-    else:
-        st.text_area("💡 AI Suggestions", suggestion, height=250)
-
-    # Decide which version to parse: translated if exists & language is tr, else original
-    display_text = st.session_state.translated_suggestion if (L == "tr" and st.session_state.translated_suggestion) else suggestion
+    suggestion = response.choices[0].message.content
+    st.text_area("💡 AI Suggestions", suggestion, height=250)
 
     # --- Parse Suggestions & Add Checkboxes ---
-    suggestion_lines = [line.strip() for line in display_text.split("\n") if line.strip()]
+    suggestion_lines = [line.strip() for line in suggestion.split("\n") if line.strip()]
     gift_choices = [line for line in suggestion_lines if line and line[0].isdigit()]
+
     st.session_state.generated_gifts = gift_choices  # Store for use outside if submitted
 
 # --- Show checkboxes for liked gifts ---
@@ -246,6 +220,7 @@ if st.button(TEXT["save_button"][L]):
             sheet = client_gs.open("Gift Preferences").sheet1
         except gspread.SpreadsheetNotFound:
             spreadsheet = client_gs.create("Gift Preferences")
+            # TODO: replace with your actual service account email if needed
             spreadsheet.share(st.secrets["gspread"]["client_email"], perm_type='user', role='writer')
             sheet = spreadsheet.sheet1
 

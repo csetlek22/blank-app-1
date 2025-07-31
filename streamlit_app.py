@@ -114,7 +114,14 @@ with st.form("gift_form"):
     if custom:
         occasion.append(custom)
 
-    budget = st.slider(TEXT["budget"][L], 5, 150, 5)
+    # budget with conditional currency/range
+    if L == "tr":
+        budget = st.slider(TEXT["budget"][L], 200, 1500, 200, step=20)
+        budget_display = f"{budget} TL"
+    else:
+        budget = st.slider(TEXT["budget"][L], 5, 150, 5)
+        budget_display = f"{budget} €"
+
     story = st.text_area(TEXT["story"][L])
     submitted = st.form_submit_button(TEXT["submit"][L])
 
@@ -147,7 +154,7 @@ Alıcı: {recipient}
 Kişilik: {', '.join(personality)}
 İlgi Alanları: {', '.join(interests)}
 Etkinlik: {', '.join(occasion)}
-Bütçe: {budget} Euro
+Bütçe: {budget} TL
 Hikaye: {story if story else "Yok"}
 
 Her öneriyi numaralandırılmış liste olarak yaz ve her biri kısa açıklama içersin. Örnek format:

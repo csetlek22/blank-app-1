@@ -185,14 +185,16 @@ Only return the list.
     suggestion = response.choices[0].message.content.strip()
     st.session_state.original_suggestion = suggestion
 
-    # Always translate if Turkish selected
+    # If user is Turkish but model output might be English, allow explicit translation
     if L == "tr":
-        translated = translate_to_turkish(suggestion)
-        st.session_state.translated_suggestion = translated
-        display_text = translated
-        st.text_area("💡 AI Öneriler", translated, height=250)
+        # If suggestion appears to be in English, offer translate button
+        if st.button(TEXT["translate_button"][L]):
+            translated = translate_to_turkish(suggestion)
+            st.session_state.translated_suggestion = translated
+            st.text_area("💡 AI Suggestions (Türkçe)", translated, height=250)
+        else:
+            st.text_area("💡 AI Suggestions", suggestion, height=250)
     else:
-        display_text = suggestion
         st.text_area("💡 AI Suggestions", suggestion, height=250)
 
     # Decide which version to parse: translated if exists & language is tr, else original

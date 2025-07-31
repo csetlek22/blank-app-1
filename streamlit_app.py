@@ -24,7 +24,7 @@ TEXT = {
     "recipient": {"en": "Gift is for", "tr": "Hediye kime"},
     "personality_prompt": {"en": "What personality traits describe this person?", "tr": "Bu kişiyi hangi kişilik özellikleri tanımlar?"},
     "interests_prompt": {"en": "What are this person’s interests?", "tr": "Bu kişinin ilgi alanları nelerdir?"},
-    "occasion_prompt": {"en": "Occasion(s)", "tr": "Fırsat(lar)"},
+    "occasion_prompt": {"en": "Occasion(s)", "tr": "Hediye Alma Neden(ler)i"},
     "custom_occasion": {"en": "Other occasion (optional)", "tr": "Diğer etkinlik (opsiyonel)"},
     "budget": {"en": "Budget (€)", "tr": "Bütçe (€)"},
     "story": {"en": "Tell us a short story about them (optional but recommended)", "tr": "Hakkında kısa bir hikaye anlatın (isteğe bağlı ama önerilir)"},

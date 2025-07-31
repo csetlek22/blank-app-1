@@ -5,92 +5,151 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 # --- CONFIGURATION ---
-
 MODEL_NAME = "llama3-70b-8192"
 
 # --- INIT GROQ CLIENT ---
 api_key = st.secrets["API_KEY"]
-
 client = Groq(api_key=api_key)
 
+# --- LANGUAGE SETUP ---
+LANG_OPTIONS = {"English": "en", "Türkçe": "tr"}
+lang = st.selectbox("Language / Dil", list(LANG_OPTIONS.keys()), index=0)
+L = LANG_OPTIONS[lang]
+
+# Localization dictionaries (extend as needed)
+TEXT = {
+    "title": {"en": "🎁 Gift Recommendation Engine", "tr": "🎁 Hediye Öneri Motoru"},
+    "subtitle": {"en": "Answer a few fun questions and get personalized gift ideas!",
+                 "tr": "Birkaç eğlenceli soruyu cevaplayın ve kişiselleştirilmiş hediye fikirleri alın!"},
+    "email": {"en": "Your Email", "tr": "E-posta Adresiniz"},
+    "recipient": {"en": "Gift is for", "tr": "Hediye kime"},
+    "personality_prompt": {"en": "What personality traits describe this person?",
+                           "tr": "Bu kişiyi hangi kişilik özellikleri tanımlar?"},
+    "interests_prompt": {"en": "What are this person’s interests?",
+                         "tr": "Bu kişinin ilgi alanları nelerdir?"},
+    "occasion_prompt": {"en": "Occasion(s)", "tr": "Fırsat(lar)"},
+    "custom_occasion": {"en": "Other occasion (optional)", "tr": "Diğer etkinlik (opsiyonel)"},
+    "budget": {"en": "Budget (€)", "tr": "Bütçe (€)"},
+    "story": {"en": "Tell us a short story about them (optional but recommended)",
+              "tr": "Hakkında kısa bir hikaye anlatın (isteğe bağlı ama önerilir)"},
+    "submit": {"en": "🎯 Get Gift Suggestions", "tr": "🎯 Hediye Önerisi Al"},
+    "suggested": {"en": "🎁 Suggested Gifts", "tr": "🎁 Önerilen Hediyeler"},
+    "select_liked": {"en": "👍 Select the gifts you like:", "tr": "👍 Beğendiğiniz hediyeleri seçin:"},
+    "final_step": {"en": "📩 Final Step", "tr": "📩 Son Adım"},
+    "save_button": {"en": "✅ Save My Gift Preferences", "tr": "✅ Hediye Tercihlerimi Kaydet"},
+    "fill_required": {"en": "Please fill in your email and recipient's name.",
+                      "tr": "Lütfen e-posta ve hediye alıcısının adını girin."},
+    "select_at_least": {"en": "Please select at least one gift from the list.",
+                        "tr": "Lütfen listeden en az bir hediye seçin."},
+    "saved_success": {"en": "Your answers and favorite gifts were saved successfully!",
+                      "tr": "Cevaplarınız ve favori hediyeleriniz başarıyla kaydedildi!"},
+}
 
 # --- INIT SESSION STATE ---
 if "liked_gifts" not in st.session_state:
     st.session_state.liked_gifts = []
 
-# --- STREAMLIT FORM ---
-st.title("🎁 Gift Recommendation Engine")
-st.markdown("Answer a few fun questions and get **personalized** gift ideas!")
+# --- UI ---
+st.title(TEXT["title"][L])
+st.markdown(TEXT["subtitle"][L])
 
 with st.form("gift_form"):
-    email = st.text_input("Your Email")
-    recipient = st.selectbox("Gift is for", ["Myself", "Friend", "Partner", "Sibling", "Parent", "Child", "Colleague", "Other"])
+    email = st.text_input(TEXT["email"][L])
+    recipient = st.selectbox(
+        TEXT["recipient"][L],
+        {
+            "en": ["Myself", "Friend", "Partner", "Sibling", "Parent", "Child", "Colleague", "Other"],
+            "tr": ["Kendim", "Arkadaş", "Partner", "Kardeş", "Ebeveyn", "Çocuk", "İş Arkadaşı", "Diğer"]
+        }[L]
+    )
 
-    personality_traits = [
-        "Funny", "Curious", "Introverted", "Creative", "Adventurous",
-        "Kind", "Calm", "Outgoing", "Empathetic", "Ambitious",
-        "Thoughtful", "Logical", "Emotional", "Playful", "Determined",
-        "Optimistic", "Mindful", "Artistic", "Practical", "Romantic"
-    ]
+    personality_traits = {
+        "en": [
+            "Funny", "Curious", "Introverted", "Creative", "Adventurous",
+            "Kind", "Calm", "Outgoing", "Empathetic", "Ambitious",
+            "Thoughtful", "Logical", "Emotional", "Playful", "Determined",
+            "Optimistic", "Mindful", "Artistic", "Practical", "Romantic"
+        ],
+        "tr": [
+            "Komik", "Meraklı", "İçe dönük", "Yaratıcı", "Macera sever",
+            "Nazik", "Sakin", "Dışa dönük", "Empatik", "Hırslı",
+            "Düşünceli", "Mantıklı", "Duygusal", "Oyunbaz", "Kararlı",
+            "İyimser", "Farkında", "Sanatsal", "Pratik", "Romantik"
+        ]
+    }[L]
 
-    personality = st.multiselect("What personality traits describe this person?", personality_traits)
+    personality = st.multiselect(TEXT["personality_prompt"][L], personality_traits)
 
-    interest_options = [
-        # Tech & Digital
-        "Tech", "Gadgets", "AI & Robotics", "Smart Home", "Programming", "Crypto", "Gaming", "Virtual Reality",
+    interest_options = {
+        "en": [
+            "Tech", "Gadgets", "AI & Robotics", "Smart Home", "Programming", "Crypto", "Gaming", "Virtual Reality",
+            "Art", "Painting", "Drawing", "Photography", "Crafts", "Design", "Creative Writing",
+            "Music", "Instruments", "Singing", "Podcasts", "Movies", "TV Shows", "Theater", "Anime",
+            "Books", "Fiction", "Non-fiction", "Philosophy", "Science", "History", "Languages",
+            "Fitness", "Running", "Yoga", "Hiking", "Biking", "Sports", "Climbing",
+            "Cooking", "Baking", "Tea & Coffee", "Mixology", "Fashion", "Skincare", "Gardening", "Travel"
+        ],
+        "tr": [
+            "Teknoloji", "Cihazlar", "Yapay Zeka ve Robotik", "Akıllı Ev", "Programlama", "Kripto", "Oyun", "Sanal Gerçeklik",
+            "Sanat", "Resim", "Çizim", "Fotoğrafçılık", "El Sanatları", "Tasarım", "Yaratıcı Yazarlık",
+            "Müzik", "Enstrümanlar", "Şarkı Söyleme", "Podcast", "Filmler", "TV Şovları", "Tiyatro", "Anime",
+            "Kitaplar", "Kurgu", "Kurgu Dışı", "Felsefe", "Bilim", "Tarih", "Diller",
+            "Fitness", "Koşu", "Yoga", "Yürüyüş", "Bisiklet", "Spor", "Tırmanış",
+            "Yemek Pişirme", "Fırıncılık", "Çay ve Kahve", "Kokteyl", "Moda", "Cilt Bakımı", "Bahçecilik", "Seyahat"
+        ]
+    }[L]
 
-        # Arts & Creativity
-        "Art", "Painting", "Drawing", "Photography", "Crafts", "Design", "Creative Writing",
+    interests = st.multiselect(TEXT["interests_prompt"][L], interest_options)
 
-        # Music & Media
-        "Music", "Instruments", "Singing", "Podcasts", "Movies", "TV Shows", "Theater", "Anime",
+    occasion_options = {
+        "en": [
+            "Birthday", "Graduation", "Anniversary", "Valentine's Day", "Christmas", "New Year's",
+            "Mother's Day", "Father's Day", "Wedding", "Housewarming", "Promotion", "Farewell"
+        ],
+        "tr": [
+            "Doğum Günü", "Mezuniyet", "Yıldönümü", "Sevgililer Günü", "Noel", "Yeni Yıl",
+            "Anneler Günü", "Babalar Günü", "Düğün", "Eve Hoşgeldin", "Terfi", "Veda"
+        ]
+    }[L]
 
-        # Books & Learning
-        "Books", "Fiction", "Non-fiction", "Philosophy", "Science", "History", "Languages",
+    occasion = st.multiselect(TEXT["occasion_prompt"][L], occasion_options)
+    custom = st.text_input(TEXT["custom_occasion"][L])
+    if custom:
+        occasion.append(custom)
 
-        # Active Lifestyle
-        "Fitness", "Running", "Yoga", "Hiking", "Biking", "Sports", "Climbing",
-
-        # Food & Lifestyle
-        "Cooking", "Baking", "Tea & Coffee", "Mixology", "Fashion", "Skincare", "Gardening", "Travel"
-    ]
-
-    interests = st.multiselect("What are this person’s interests?", interest_options)
-    occasion_options = [
-        "Birthday",
-        "Graduation",
-        "Anniversary",
-        "Valentine's Day",
-        "Christmas",
-        "New Year's",
-        "Mother's Day",
-        "Father's Day",
-        "Wedding",
-        "Housewarming",
-        "Promotion",
-        "Farewell"
-    ]
-
-    occasion = st.multiselect("Occasion(s)", occasion_options)
-    custom_occasion = st.text_input("Other occasion (optional)")
-    if custom_occasion:
-        occasion.append(custom_occasion)
-
-    budget = st.slider("Budget (€)", 5, 150, 5)
-    story = st.text_area("Tell us a short story about them (optional but recommended)")
-    submitted = st.form_submit_button("🎯 Get Gift Suggestions")
+    budget = st.slider(TEXT["budget"][L], 5, 150, 5)
+    story = st.text_area(TEXT["story"][L])
+    submitted = st.form_submit_button(TEXT["submit"][L])
 
 gift_choices = []
 
 # --- HANDLE AI SUGGESTIONS ---
 if submitted:
-    st.subheader("🎁 Suggested Gifts")
+    st.subheader(TEXT["suggested"][L])
 
-    prompt = f"""
+    # Build prompt in selected language
+    if L == "tr":
+        prompt = f"""
+Sen, benzersiz ve anlamlı hediyeler seçen yaratıcı bir hediye öneri uzmanısın.
+Aşağıdaki kişi için 15 adet özgün ve düşünülmüş hediye önerisi yap.
+
+Alıcı: {recipient}
+Kişilik: {', '.join(personality)}
+İlgi Alanları: {', '.join(interests)}
+Etkinlik: {occasion}
+Bütçe: {budget} Euro
+Hikaye: {story if story else "Yok"}
+
+Her öneriyi numaralandırılmış liste olarak yaz ve her biri kısa açıklama içersin. Örnek format:
+1. Hediye Adı - Neden uygun olduğu açıklaması
+
+Sıradan ve kişisel dokunuşu olmayan hediyelerden kaçın. Farklı fiyat aralıklarında, çeşitli, yaratıcı ve alıcıya özel öneriler ver.
+"""
+    else:
+        prompt = f"""
 You are a creative gift recommendation specialist with a keen eye for unique and thoughtful presents. You have a deep understanding of individual preferences and interests, allowing you to curate personalized gift ideas that stand out.
 
 Your task is to suggest 15 unique and thoughtful gift ideas for the following person:  
-
 
 Recipient: {recipient}
 Personality: {', '.join(personality)}
@@ -99,26 +158,7 @@ Occasion: {occasion}
 Budget: {budget} Euros
 Story: {story if story else "N/A"}
 
----
-
-The gift suggestions should be formatted as a numbered list, with each entry containing a brief description of the gift and why it would be suitable for the individual mentioned above. Aim for creativity and originality in your recommendations. 
-
----
-
-Please ensure that the suggestions are diverse and cater to different price ranges, keeping in mind the recipient's interests and the occasion. Avoid common or generic gifts that lack personal touch.
-
----
-
-Example:  
-1. Custom Star Map - A beautifully framed map showcasing the stars on a specific date significant to the recipient.  
-2. Subscription Box for Art Supplies - A monthly delivery of curated art materials for the aspiring artist.  
-3. Personalized Recipe Book - A collection of family recipes curated and printed in a custom book format.
-
---- 
-
-Be cautious of overly commercialized items and trends that may not resonate with the recipient's personality. Focus on unique finds that reflect thoughtfulness and care in the selection process.
-
-
+The gift suggestions should be formatted as a numbered list, with each entry containing a brief description of the gift and why it would be suitable for the individual mentioned above. Aim for creativity and originality in your recommendations. Avoid generic gifts.
 Format each suggestion as:
 1. Gift Name - Short explanation why it's a good fit
 Only return the list.
@@ -135,13 +175,13 @@ Only return the list.
 
     # --- Parse Suggestions & Add Checkboxes ---
     suggestion_lines = [line.strip() for line in suggestion.split("\n") if line.strip()]
-    gift_choices = [line for line in suggestion_lines if line[0].isdigit()]
+    gift_choices = [line for line in suggestion_lines if line and line[0].isdigit()]
 
     st.session_state.generated_gifts = gift_choices  # Store for use outside if submitted
 
 # --- Show checkboxes for liked gifts ---
 if "generated_gifts" in st.session_state:
-    st.subheader("👍 Select the gifts you like:")
+    st.subheader(TEXT["select_liked"][L])
     for i, gift in enumerate(st.session_state.generated_gifts):
         checked = st.checkbox(gift, key=f"gift_{i}")
         if checked and gift not in st.session_state.liked_gifts:
@@ -150,13 +190,13 @@ if "generated_gifts" in st.session_state:
             st.session_state.liked_gifts.remove(gift)
 
 # --- Final Submission ---
-st.subheader("📩 Final Step")
+st.subheader(TEXT["final_step"][L])
 
-if st.button("✅ Save My Gift Preferences"):
+if st.button(TEXT["save_button"][L]):
     if not email or not recipient:
-        st.error("Please fill in your email and recipient's name.")
+        st.error(TEXT["fill_required"][L])
     elif not st.session_state.liked_gifts:
-        st.warning("Please select at least one gift from the list.")
+        st.warning(TEXT["select_at_least"][L])
     else:
         log_entry = {
             "timestamp": datetime.now().isoformat(),
@@ -171,17 +211,17 @@ if st.button("✅ Save My Gift Preferences"):
         }
 
         # Connect to Google Sheets
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["gspread"], scope)
         client_gs = gspread.authorize(creds)
 
         # Open or create your sheet
-
         try:
             sheet = client_gs.open("Gift Preferences").sheet1
         except gspread.SpreadsheetNotFound:
             spreadsheet = client_gs.create("Gift Preferences")
-            spreadsheet.share('your-service-account@...', perm_type='user', role='writer')
+            # TODO: replace with your actual service account email if needed
+            spreadsheet.share(st.secrets["gspread"]["client_email"], perm_type='user', role='writer')
             sheet = spreadsheet.sheet1
 
         # Append the data
@@ -197,6 +237,5 @@ if st.button("✅ Save My Gift Preferences"):
             ", ".join(st.session_state.liked_gifts)
         ])
 
-        st.success("Your answers and favorite gifts were saved successfully!")
+        st.success(TEXT["saved_success"][L])
         st.session_state.liked_gifts = []
- 

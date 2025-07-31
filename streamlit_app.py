@@ -148,7 +148,7 @@ if submitted:
     if L == "tr":
         prompt = f"""
 Sen, benzersiz ve anlamlı hediyeler seçen yaratıcı bir hediye öneri uzmanısın.
-Aşağıdaki kişi için 15 adet özgün ve düşünülmüş hediye önerisi yap.
+Aşağıdaki kişi için 20 adet özgün ve düşünülmüş hediye önerisi yap.
 
 Alıcı: {recipient}
 Kişilik: {', '.join(personality)}
@@ -166,7 +166,7 @@ Sıradan ve kişisel dokunuşu olmayan hediyelerden kaçın. Farklı fiyat aral�
         prompt = f"""
 You are a creative gift recommendation specialist with a keen eye for unique and thoughtful presents. You have a deep understanding of individual preferences and interests, allowing you to curate personalized gift ideas that stand out.
 
-Your task is to suggest 15 unique and thoughtful gift ideas for the following person:  
+Your task is to suggest 20 unique and thoughtful gift ideas for the following person:  
 
 Recipient: {recipient}
 Personality: {', '.join(personality)}
